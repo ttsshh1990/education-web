@@ -1,6 +1,7 @@
 require 'mina/rails'
 require 'mina/git'
-require 'mina/rvm'
+# require 'mina/rbenv'  # for rbenv support. (https://rbenv.org)
+require 'mina/rvm'    # for rvm support. (https://rvm.io)
 
 # Basic settings:
 #   domain       - The hostname to SSH to.
@@ -9,9 +10,8 @@ require 'mina/rvm'
 #   branch       - Branch name to deploy. (needed by mina/git)
 
 set :application_name, 'education-web'
-set :domain, 'example.com'
-set :user, fetch(:application_name)
-set :deploy_to, "/home/#{fetch(:user)}/app"
+set :domain, 'rails-demo@104.131.161.49'
+set :deploy_to, '/home/rails-demo/app'
 set :repository, 'git@github.com:ttsshh1990/education-web.git'
 set :branch, 'master'
 set :rvm_use_path, '/etc/profile.d/rvm.sh'
@@ -23,41 +23,27 @@ set :rvm_use_path, '/etc/profile.d/rvm.sh'
 
 # shared dirs and files will be symlinked into the app-folder by the 'deploy:link_shared_paths' step.
 # set :shared_dirs, fetch(:shared_dirs, []).push('somedir')
-set :shared_files, fetch(:shared_files, []).push('config/database.yml', 'config/secrets.yml')
+# set :shared_files, fetch(:shared_files, []).push('config/database.yml', 'config/secrets.yml')
 
 # This task is the environment that is loaded for all remote run commands, such as
 # `mina deploy` or `mina rake`.
 task :environment do
+  # If you're using rbenv, use this to load the rbenv environment.
+  # Be sure to commit your .ruby-version or .rbenv-version to your repository.
+  # invoke :'rbenv:load'
+
+  # For those using RVM, use this to load an RVM version@gemset.
+  # invoke :'rvm:use', 'ruby-1.9.3-p125@default'
   ruby_version = File.read('.ruby-version').strip
   raise "Couldn't determine Ruby version: Do you have a file .ruby-version in your project root?" if ruby_version.empty?
 
   invoke :'rvm:use', ruby_version
 end
 
+# Put any custom commands you need to run at setup
+# All paths in `shared_dirs` and `shared_paths` will be created on their own.
 task :setup do
-
-  in_path(fetch(:shared_path)) do
-
-    command %[mkdir -p config]
-
-    # Create database.yml for Postgres if it doesn't exist
-    path_database_yml = "config/database.yml"
-    database_yml = %[production:
-  database: #{fetch(:user)}
-  adapter: postgresql
-  pool: 5
-  timeout: 5000]
-    command %[test -e #{path_database_yml} || echo "#{database_yml}" > #{path_database_yml}]
-
-    # Create secrets.yml if it doesn't exist
-    path_secrets_yml = "config/secrets.yml"
-    secrets_yml = %[production:\n  secret_key_base:\n    #{`rake secret`.strip}]
-    command %[test -e #{path_secrets_yml} || echo "#{secrets_yml}" > #{path_secrets_yml}]
-    
-    # Remove others-permission for config directory
-    command %[chmod -R o-rwx config]
-  end
-
+  # command %{rbenv install 2.3.0}
 end
 
 desc "Deploys the current version to the server."
@@ -75,7 +61,10 @@ task :deploy do
     invoke :'deploy:cleanup'
 
     on :launch do
-      # command "sudo service #{fetch(:user)} restart"
+      in_path(fetch(:current_path)) do
+        command %{mkdir -p tmp/}
+        command %{touch tmp/restart.txt}
+      end
     end
   end
 
