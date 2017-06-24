@@ -1,7 +1,7 @@
 require 'mina/rails'
 require 'mina/git'
 # require 'mina/rbenv'  # for rbenv support. (https://rbenv.org)
-require 'mina/rvm'    # for rvm support. (https://rvm.io)
+# require 'mina/rvm'    # for rvm support. (https://rvm.io)
 
 # Basic settings:
 #   domain       - The hostname to SSH to.
@@ -9,12 +9,11 @@ require 'mina/rvm'    # for rvm support. (https://rvm.io)
 #   repository   - Git repo to clone from. (needed by mina/git)
 #   branch       - Branch name to deploy. (needed by mina/git)
 
-set :application_name, 'education-web'
-set :domain, 'root@104.131.161.49'
-set :deploy_to, '/home/rails-demo/app'
-set :repository, 'git@github.com:ttsshh1990/education-web.git'
+set :application_name, 'foobar'
+set :domain, 'foobar.com'
+set :deploy_to, '/var/www/foobar.com'
+set :repository, 'git://...'
 set :branch, 'master'
-set :rvm_use_path, '/etc/profile.d/rvm.sh'
 
 # Optional settings:
 #   set :user, 'foobar'          # Username in the server to SSH to.
@@ -34,37 +33,12 @@ task :environment do
 
   # For those using RVM, use this to load an RVM version@gemset.
   # invoke :'rvm:use', 'ruby-1.9.3-p125@default'
-  ruby_version = File.read('.ruby-version').strip
-  raise "Couldn't determine Ruby version: Do you have a file .ruby-version in your project root?" if ruby_version.empty?
-
-  invoke :'rvm:use', ruby_version
 end
 
 # Put any custom commands you need to run at setup
 # All paths in `shared_dirs` and `shared_paths` will be created on their own.
 task :setup do
   # command %{rbenv install 2.3.0}
-  in_path(fetch(:shared_path)) do
-
-    command %[mkdir -p config]
-
-    # Create database.yml for Postgres if it doesn't exist
-    path_database_yml = "config/database.yml"
-    database_yml = %[production:
-  database: #{fetch(:user)}
-  adapter: postgresql
-  pool: 5
-  timeout: 5000]
-    command %[test -e #{path_database_yml} || echo "#{database_yml}" > #{path_database_yml}]
-
-    # Create secrets.yml if it doesn't exist
-    path_secrets_yml = "config/secrets.yml"
-    secrets_yml = %[production:\n  secret_key_base:\n    #{`rake secret`.strip}]
-    command %[test -e #{path_secrets_yml} || echo "#{secrets_yml}" > #{path_secrets_yml}]
-    
-    # Remove others-permission for config directory
-    command %[chmod -R o-rwx config]
-  end
 end
 
 desc "Deploys the current version to the server."
@@ -78,7 +52,7 @@ task :deploy do
     invoke :'deploy:link_shared_paths'
     invoke :'bundle:install'
     invoke :'rails:db_migrate'
-#    invoke :'rails:assets_precompile'
+    invoke :'rails:assets_precompile'
     invoke :'deploy:cleanup'
 
     on :launch do
